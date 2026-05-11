@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Database (local data — do not commit)
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# SQLite files (local dev fallback)
+*.db
+*.db-shm
+*.db-wal
+
+# TypeScript
+tsconfig.tsbuildinfo
+
+# Editor
+.vscode/
+.idea/

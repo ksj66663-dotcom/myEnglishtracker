@@ -1,0 +1,408 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Three-Notebook Boutique Hotel Design System ── */
+
+/* ── Design Tokens ─────────────────────────────────────────────────────── */
+:root {
+  --color-mustard:    #FFC233;   /* Task notebook — key card yellow */
+  --color-terracotta: #C65D3B;   /* Reading notebook — warm rust */
+  --color-warm-gray:  #D1D1C9;   /* Vocabulary notebook — aged linen */
+  --color-ink:        #1F1F1F;   /* Near-black — heavy ink */
+  --color-paper:      #F4F1EA;   /* Off-white — aged paper / desk surface */
+
+  /* Legacy compatibility aliases */
+  --primary:         var(--color-mustard);
+  --primary-h:       #E6A820;
+  --primary-light:   #FFF8E6;
+  --primary-glow:    rgba(255,194,51,0.18);
+  --primary-dim:     rgba(255,194,51,0.12);
+  --secondary:       var(--color-terracotta);
+  --secondary-h:     #B04D2E;
+  --secondary-light: #F9EAE4;
+  --secondary-dim:   rgba(198,93,59,0.12);
+  --success:         #4A7C4E;
+  --warning:         var(--color-mustard);
+  --danger:          var(--color-terracotta);
+
+  /* Surface scale */
+  --bg-0: var(--color-paper);
+  --bg-1: #FAF7F0;
+  --bg-2: #EDEAE1;
+  --bg-3: var(--color-warm-gray);
+  --bg-4: #C4C4BC;
+
+  /* Text scale */
+  --text-1: var(--color-ink);
+  --text-2: #2E2B26;
+  --text-3: #6B6560;
+  --text-4: #9B9590;
+
+  /* Borders */
+  --border:   rgba(0,0,0,0.10);
+  --border-h: rgba(0,0,0,0.20);
+
+  /* Shadows — warm tones only, no blue */
+  --shadow-sm:       0 1px 3px rgba(31,20,10,0.06);
+  --shadow-md:       0 2px 8px rgba(31,20,10,0.09), 0 1px 3px rgba(31,20,10,0.05);
+  --shadow-lg:       0 4px 16px rgba(31,20,10,0.12), 0 2px 6px rgba(31,20,10,0.07);
+  --shadow-notebook: 4px 4px 0 rgba(0,0,0,0.08), 8px 8px 24px rgba(0,0,0,0.12);
+  --shadow-primary:  0 2px 8px rgba(255,194,51,0.28), 0 1px 3px rgba(255,194,51,0.18);
+
+  /* Typography */
+  --font-heading: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+  --font-mono:    var(--font-courier), 'Courier Prime', 'Courier New', monospace;
+  --font-utility: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --font-dm-sans: var(--font-dm-sans);
+  --font-anon:    var(--font-courier);
+}
+
+/* ── Dark mode — warm night variant ────────────────────────────────────── */
+.dark {
+  --color-paper:     #232019;
+  --color-ink:       #EAE3D5;
+  --color-warm-gray: #3A3730;
+  --bg-0: #232019; --bg-1: #2B2820; --bg-2: #363228;
+  --bg-3: #433F35; --bg-4: #504C40;
+  --text-1: #EAE3D5; --text-2: #CEC8B8;
+  --text-3: #8A8478; --text-4: #6A6460;
+  --border:   rgba(255,240,200,0.09);
+  --border-h: rgba(255,240,200,0.16);
+  --shadow-sm:       0 1px 3px rgba(0,0,0,0.25);
+  --shadow-md:       0 2px 8px rgba(0,0,0,0.30);
+  --shadow-lg:       0 4px 16px rgba(0,0,0,0.40);
+}
+
+/* ── Text Selection ─────────────────────────────────────────────────────── */
+::selection {
+  background-color: var(--color-terracotta);
+  color: #FAF7F0;
+}
+
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html { -webkit-tap-highlight-color: transparent; }
+
+/* ── Body — desk surface with noise ─────────────────────────────────────── */
+body {
+  background-color: var(--color-paper);
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+}
+
+/* ── Grain Overlay ──────────────────────────────────────────────────────── */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* ── Paper Texture ──────────────────────────────────────────────────────── */
+.paper-texture {
+  position: relative;
+  overflow: hidden;
+}
+.paper-texture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' fill='white'/%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  z-index: 0;
+}
+.paper-texture > * { position: relative; z-index: 1; }
+
+/* ── Lined Paper ────────────────────────────────────────────────────────── */
+.lined-paper {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    rgba(0,0,0,0.06) 27px,
+    rgba(0,0,0,0.06) 28px
+  );
+}
+
+/* ── Notebook Notch ─────────────────────────────────────────────────────── */
+.notebook-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96px;
+  height: 48px;
+  background: var(--color-paper);
+  border-bottom-left-radius: 9999px;
+  border-bottom-right-radius: 9999px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.08);
+  z-index: 40;
+}
+
+/* ── Wax Seal ───────────────────────────────────────────────────────────── */
+.wax-seal {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wax-seal-inner {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 1px dashed rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1px;
+  padding: 4px;
+}
+
+/* ── Perforated Edge ────────────────────────────────────────────────────── */
+.perforated-edge {
+  background-image: radial-gradient(circle, transparent 4px, currentColor 5px);
+  background-size: 16px 16px;
+  background-position: -8px -8px;
+}
+
+/* ── Circle Buttons ─────────────────────────────────────────────────────── */
+.circle-btn {
+  border-radius: 50%;
+  background: var(--color-ink);
+  color: var(--color-mustard);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+}
+.circle-btn:hover  { transform: scale(1.08); }
+.circle-btn:active { transform: scale(0.94); }
+
+.circle-btn-sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.2);
+  background: transparent;
+  color: var(--color-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
+}
+.circle-btn-sm:hover { background: rgba(0,0,0,0.06); }
+
+/* ── Book Tabs ──────────────────────────────────────────────────────────── */
+.book-tab {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 5px 10px;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  transition: margin-top 0.2s ease, background 0.2s ease, color 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-bottom: none;
+}
+
+/* ── Folded Note (guide expand area) ───────────────────────────────────── */
+.folded-note {
+  background: rgba(0,0,0,0.025);
+  border-left: 2.5px solid var(--color-mustard);
+  border-radius: 0 4px 4px 0;
+  padding: 12px 16px;
+}
+.folded-note-terracotta {
+  background: rgba(198,93,59,0.05);
+  border-left: 2.5px solid var(--color-terracotta);
+  border-radius: 0 4px 4px 0;
+  padding: 12px 16px;
+}
+
+/* ── Two-Page Spread ────────────────────────────────────────────────────── */
+.notebook-interior {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.notebook-page-left {
+  flex: 1;
+  padding: 28px 36px;
+  overflow-y: auto;
+  border-right: 1px solid rgba(0,0,0,0.1);
+  box-shadow: 4px 0 12px rgba(0,0,0,0.04) inset;
+  background: var(--color-paper);
+  display: flex;
+  flex-direction: column;
+}
+.notebook-page-right {
+  flex: 1;
+  padding: 28px 36px;
+  overflow-y: auto;
+  background: var(--color-paper);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Page anatomy ───────────────────────────────────────────────────────── */
+.page-header-strip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  opacity: 0.6;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+  border-bottom: 1px dashed rgba(0,0,0,0.15);
+  color: var(--color-ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+/* ── Ledger Row ─────────────────────────────────────────────────────────── */
+.ledger-row {
+  border-bottom: 1px dashed rgba(0,0,0,0.08);
+  padding: 14px 0;
+  transition: background 0.2s ease;
+}
+.ledger-row:last-child { border-bottom: none; }
+.ledger-row.complete {
+  background: rgba(255,194,51,0.06);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* ── Reference Slip Table ───────────────────────────────────────────────── */
+.ref-slip-table {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0;
+}
+.ref-slip-divider {
+  width: 1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.12) 0px,
+    rgba(0,0,0,0.12) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+/* ── Progress Grid ──────────────────────────────────────────────────────── */
+.progress-cell {
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  transition: transform 0.15s ease;
+}
+.progress-cell:hover { transform: scale(1.2); z-index: 1; position: relative; }
+
+/* ── Checkmark Animation ───────────────────────────────────────────────── */
+@keyframes checkmark-draw {
+  from { stroke-dashoffset: 30; }
+  to   { stroke-dashoffset: 0; }
+}
+.checkmark-path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 0;
+  animation: checkmark-draw 0.4s ease forwards;
+}
+
+/* ── Shake ──────────────────────────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+.shake { animation: shake 0.4s ease; }
+
+/* ── Stamp press ────────────────────────────────────────────────────────── */
+@keyframes stamp-press {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(0.88); }
+  70%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.stamp-press { animation: stamp-press 0.5s ease; }
+
+/* ── Spinning Text ──────────────────────────────────────────────────────── */
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin-slow { animation: rotate-slow 20s linear infinite; }
+
+/* ── Fade In ────────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInFast {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Notebook open animation ────────────────────────────────────────────── */
+@keyframes notebook-open {
+  0%   { opacity: 0; transform: scale(0.94) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes page-reveal {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Hotel Divider ──────────────────────────────────────────────────────── */
+.hotel-divider {
+  border: none;
+  border-top: 1px dashed rgba(0,0,0,0.15);
+  margin: 0;
+}
+.dark .hotel-divider { border-top-color: rgba(255,240,200,0.1); }
+
+/* ── Legacy utility classes ─────────────────────────────────────────────── */
+.pv-bg    { background-color: var(--bg-0); color: var(--text-1); }
+.pv-card  { background: var(--bg-1); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-md); }
+.pv-iso   { background: var(--bg-1); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-md); }
+.pv-panel { background: rgba(209,209,201,0.25); border: 1px solid var(--border); border-radius: 8px; }
+.dark .pv-panel { background: rgba(255,240,200,0.04); }
+.pv-header { background: var(--bg-1); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.pv-btn {
+  cursor: pointer;
+  transition: transform 0.3s ease, opacity 0.15s ease;
+}
+.pv-btn:hover:not(:disabled)  { transform: translateY(-1px); }
+.pv-btn:active:not(:disabled) { transform: translateY(0); }
+.paper-texture.pv-card { border-radius: 8px; }
+
+/* ── Scrollbar — hidden globally ────────────────────────────────────────── */
+* { -ms-overflow-style: none; scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
