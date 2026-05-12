@@ -76,23 +76,25 @@ export default function VocabNotebook({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ words }),
       });
-      const data = await res.json() as { synced?: number; errors?: number; error?: string };
-      if (res.ok) {
-        const errNote = data.errors ? ` (${data.errors} failed)` : '';
-        const msg = `Synced ${data.synced ?? 0} words${errNote}`;
-        setSyncMsg(msg); setSyncSuccess(true);
-        setStampVisible(true);
-        const newSession: SyncSession = {
-          date: currentDateStr,
-          wordCount: data.synced ?? 0,
-          message: msg,
-        };
-        const updated = [newSession, ...syncSessions].slice(0, 10);
-        setSyncSessions(updated);
-        localStorage.setItem('vocab-sync-sessions', JSON.stringify(updated));
-      } else {
-        setSyncMsg(data.error ?? 'Sync failed');
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('API error:', res.status, text.slice(0, 200));
+        setSyncMsg('Sync failed');
+        return;
       }
+      const data = await res.json() as { synced?: number; errors?: number; error?: string };
+      const errNote = data.errors ? ` (${data.errors} failed)` : '';
+      const msg = `Synced ${data.synced ?? 0} words${errNote}`;
+      setSyncMsg(msg); setSyncSuccess(true);
+      setStampVisible(true);
+      const newSession: SyncSession = {
+        date: currentDateStr,
+        wordCount: data.synced ?? 0,
+        message: msg,
+      };
+      const updated = [newSession, ...syncSessions].slice(0, 10);
+      setSyncSessions(updated);
+      localStorage.setItem('vocab-sync-sessions', JSON.stringify(updated));
     } finally { setSyncing(false); }
   };
 
@@ -100,23 +102,18 @@ export default function VocabNotebook({
   const grammarCount = grammarNotes.length;
 
   return (
-    <div style={{
-      width: '100vw', height: '100vh',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(31,31,31,0.55)',
-      position: 'fixed', inset: 0, zIndex: 100,
-      backdropFilter: 'blur(2px)',
-      padding: '16px',
-    }}>
-      <div style={{
+    <div
+      className="paper-texture rounded-lg"
+      style={{
         display: 'flex',
-        width: 'min(96vw, 1100px)',
-        height: 'min(90vh, 740px)',
-        borderRadius: '4px',
-        boxShadow: '0 32px 80px rgba(0,0,0,0.45)',
+        width: '100%',
+        maxWidth: '1100px',
+        height: 'min(90vh, 800px)',
         overflow: 'hidden',
-        animation: 'notebook-open 0.25s ease',
-      }}>
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 8px rgba(0,0,0,0.06), 0 12px 24px rgba(0,0,0,0.08), 0 24px 48px rgba(0,0,0,0.06), inset 0 2px 0 1px rgba(255,255,255,0.6)',
+        borderTop: '1px solid rgba(255,255,255,0.8)',
+      }}
+    >
 
         {/* ── LEFT PAGE — Word & Grammar List ─────────────────────────────── */}
         <div className="notebook-page-left lined-paper" style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -337,6 +334,5 @@ export default function VocabNotebook({
           </div>
         </div>
       </div>
-    </div>
   );
 }

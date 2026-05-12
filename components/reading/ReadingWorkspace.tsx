@@ -107,7 +107,10 @@ export default function ReadingWorkspace({ dateStr, tasksDone, onTaskTick }: Pro
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     if (!dateStr) return;
     fetch(`/api/article?date=${dateStr}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`API ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         if (!data) {
           setPass(0); setArticleText(''); setArticleUrl('');
@@ -252,17 +255,19 @@ export default function ReadingWorkspace({ dateStr, tasksDone, onTaskTick }: Pro
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ words }),
       });
-      const data = await res.json() as { synced?: number; errors?: number; error?: string };
-      if (res.ok) {
-        const errNote = data.errors ? `（${data.errors} 个失败）` : '';
-        setSyncMsg(`已同步 ${data.synced ?? 0} 个生词到欧陆词典 ✓${errNote}`);
-        const nextPass = 9;
-        setPass(nextPass); setFadeKey((k) => k + 1);
-        immediateSave(nextPass, articleText, articleUrl, vocabWords, grammarNotes);
-        onTaskTick(7); onTaskTick(9);
-      } else {
-        setSyncMsg(data.error ?? '同步失败');
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('API error:', res.status, text.slice(0, 200));
+        setSyncMsg('同步失败');
+        return;
       }
+      const data = await res.json() as { synced?: number; errors?: number; error?: string };
+      const errNote = data.errors ? `（${data.errors} 个失败）` : '';
+      setSyncMsg(`已同步 ${data.synced ?? 0} 个生词到欧陆词典 ✓${errNote}`);
+      const nextPass = 9;
+      setPass(nextPass); setFadeKey((k) => k + 1);
+      immediateSave(nextPass, articleText, articleUrl, vocabWords, grammarNotes);
+      onTaskTick(7); onTaskTick(9);
     } finally { setSyncing(false); }
   };
 

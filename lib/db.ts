@@ -42,6 +42,10 @@ function getClient(): Client {
   return _client;
 }
 
+export function getDbClient(): Client {
+  return getClient();
+}
+
 /* ── Schema init (runs once per process, idempotent) ─────────────────────── */
 
 let _schemaInit: Promise<void> | null = null;
@@ -72,7 +76,10 @@ async function ensureSchema(): Promise<void> {
           value TEXT NOT NULL DEFAULT ''
         )
       `);
-    })();
+    })().catch(err => {
+      _schemaInit = null;
+      throw err;
+    });
   }
   return _schemaInit;
 }

@@ -32,13 +32,20 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     if (!isOpen) return;
     setTestMsg('');
     setSaved(false);
-    fetch('/api/settings?key=eudic_token')
-      .then((r) => r.json())
-      .then((d) => setToken((d as { value?: string }).value ?? ''))
-      .catch((err) => {
-        console.error('Load settings failed:', err);
+    (async () => {
+      const res = await fetch('/api/settings?key=eudic_token');
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('Settings fetch failed:', res.status, text);
         setTestMsg('Failed to load settings. Please try again.');
-      });
+        return;
+      }
+      const data = await res.json() as { value?: string };
+      setToken(data.value ?? '');
+    })().catch((err: unknown) => {
+      console.error('Settings fetch failed:', err);
+      setTestMsg('Failed to load settings. Please try again.');
+    });
   }, [isOpen]);
 
   useEffect(() => {

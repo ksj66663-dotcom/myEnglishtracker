@@ -74,6 +74,35 @@
   --shadow-lg:       0 4px 16px rgba(0,0,0,0.40);
 }
 
+/* Dark mode component overrides */
+.dark .lined-paper {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    rgba(255,240,200,0.055) 27px,
+    rgba(255,240,200,0.055) 28px
+  );
+}
+.dark .notebook-page-left,
+.dark .notebook-page-right {
+  background: var(--color-paper);
+  border-right-color: rgba(255,240,200,0.08);
+}
+.dark .page-header-strip {
+  border-bottom-color: rgba(255,240,200,0.1);
+}
+.dark .circle-btn-sm {
+  border-color: rgba(255,240,200,0.15);
+  color: var(--color-ink);
+}
+.dark .circle-btn-sm:hover { background: rgba(255,240,200,0.06); }
+.dark .book-tab { border-color: rgba(255,240,200,0.1); }
+.dark .folded-note { background: rgba(255,240,200,0.04); }
+.dark .folded-note-terracotta { background: rgba(198,93,59,0.08); }
+.dark .progress-cell { border-color: rgba(255,240,200,0.1); }
+.dark .vintage-input { border-bottom-color: rgba(255,240,200,0.2); color: var(--color-ink); }
+.dark .vintage-circle-checkbox { border-color: rgba(255,240,200,0.25); }
+
 /* ── Text Selection ─────────────────────────────────────────────────────── */
 ::selection {
   background-color: var(--color-terracotta);
@@ -89,8 +118,12 @@ body {
   background-color: var(--color-paper);
   background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
   color: var(--color-ink);
-  font-family: var(--font-heading);
+  font-family: var(--font-heading), 'Cormorant Garamond', serif;
 }
+
+.font-typewriter { font-family: var(--font-mono), 'Courier Prime', monospace; }
+.font-sans-modern { font-family: var(--font-utility), 'DM Sans', sans-serif; }
+.text-vertical { writing-mode: vertical-rl; text-orientation: mixed; }
 
 /* ── Grain Overlay ──────────────────────────────────────────────────────── */
 .grain-overlay {
@@ -247,6 +280,8 @@ body {
 }
 .notebook-page-left {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   padding: 28px 36px;
   overflow-y: auto;
   border-right: 1px solid rgba(0,0,0,0.1);
@@ -257,6 +292,8 @@ body {
 }
 .notebook-page-right {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   padding: 28px 36px;
   overflow-y: auto;
   background: var(--color-paper);
@@ -370,10 +407,29 @@ body {
   to   { opacity: 1; }
 }
 
-/* ── Notebook open animation ────────────────────────────────────────────── */
+/* ── Notebook open / close animations ──────────────────────────────────── */
 @keyframes notebook-open {
-  0%   { opacity: 0; transform: scale(0.94) translateY(8px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+  0%   { opacity: 0; transform: perspective(1200px) scale(0.88) rotateX(6deg) rotateY(-3deg); }
+  55%  { opacity: 1; transform: perspective(1200px) scale(1.01) rotateX(-0.5deg) rotateY(0.3deg); }
+  100% { opacity: 1; transform: perspective(1200px) scale(1) rotateX(0deg) rotateY(0deg); }
+}
+@keyframes notebook-close {
+  0%   { opacity: 1; transform: perspective(1200px) scale(1) rotateX(0deg) rotateY(0deg); }
+  40%  { opacity: 0.8; transform: perspective(1200px) scale(1.01) rotateX(-1deg) rotateY(1deg); }
+  100% { opacity: 0; transform: perspective(1200px) scale(0.88) rotateX(6deg) rotateY(-3deg); }
+}
+@keyframes notebook-lift {
+  0%   { transform: translateY(0) scale(1); }
+  50%  { transform: translateY(-14px) scale(1.02); }
+  100% { transform: translateY(-8px) scale(1.01); }
+}
+@keyframes slide-up-open {
+  0%   { opacity: 0; transform: translateY(100%); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-down-close {
+  0%   { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(100%); }
 }
 @keyframes page-reveal {
   from { opacity: 0; }
@@ -406,3 +462,78 @@ body {
 /* ── Scrollbar — hidden globally ────────────────────────────────────────── */
 * { -ms-overflow-style: none; scrollbar-width: none; }
 *::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+.animate-notebook-open {
+  animation: notebook-open 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@media (max-width: 767px) {
+  .animate-notebook-open {
+    animation: slide-up-open 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+}
+.animate-notebook-close {
+  animation: notebook-close 0.4s cubic-bezier(0.4, 0, 1, 1) both;
+}
+@media (max-width: 767px) {
+  .animate-notebook-close {
+    animation: slide-down-close 0.35s ease-in both;
+  }
+}
+.animate-notebook-lift {
+  animation: notebook-lift 0.2s ease-out both;
+  pointer-events: none;
+}
+
+.vintage-input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(31,31,31,0.22);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-mono), 'Courier Prime', monospace;
+  outline: none;
+}
+
+.vintage-input:focus {
+  border-bottom-color: var(--color-terracotta);
+}
+
+.vintage-circle-checkbox {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(31,31,31,0.32);
+  background: transparent;
+  color: var(--color-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.vintage-circle-checkbox[data-checked="true"] {
+  border-color: var(--color-terracotta);
+  background: rgba(255,194,51,0.28);
+}
+
+.vintage-circle-checkbox:hover {
+  transform: scale(1.06);
+}
+
+.paper-pulse {
+  background: linear-gradient(
+    90deg,
+    rgba(31,31,31,0.05),
+    rgba(255,255,255,0.26),
+    rgba(31,31,31,0.05)
+  );
+  background-size: 200% 100%;
+  animation: paper-pulse 1.4s ease infinite;
+}
+
+@keyframes paper-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

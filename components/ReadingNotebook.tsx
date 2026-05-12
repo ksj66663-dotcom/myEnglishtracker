@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { VocabWord, GrammarNote } from '@/lib/db';
 import ArticleRenderer, { getSentencesFromText } from '@/components/reading/ArticleRenderer';
 import type { RenderMode } from '@/components/reading/ArticleRenderer';
-import { formatDateDisplay, formatDateDot, getDayNumber } from '@/lib/dateUtils';
+import { formatDateDisplay, formatDateDot, getDayNumber, getDateStrFromDayNumber, TOTAL_DAYS } from '@/lib/dateUtils';
 
 interface ReadingNotebookProps {
   onClose: () => void;
@@ -67,6 +67,12 @@ const CloseIcon = () => (
   </svg>
 );
 
+const ArrowIcon = ({ dir }: { dir: 'left' | 'right' }) => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {dir === 'left' ? <path d="M19 12H5m7 7-7-7 7-7" /> : <path d="M5 12h14m-7-7 7 7-7 7" />}
+  </svg>
+);
+
 const HistoryIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.87"/>
@@ -110,15 +116,28 @@ export default function ReadingNotebook({
 
   // ── Keyboard ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (showHistory) setShowHistory(false); else onClose(); } };
+    const h = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { if (showHistory) setShowHistory(false); else onClose(); return; }
+      if (e.key === 'ArrowLeft') {
+        const day = getDayNumber(viewingDate);
+        if (day > 1) { setViewingDate(getDateStrFromDayNumber(day - 1)); setPass(0); setArticleText(''); setShowHistory(false); }
+      }
+      if (e.key === 'ArrowRight') {
+        const day = getDayNumber(viewingDate);
+        if (day < getDayNumber(dateStr)) { setViewingDate(getDateStrFromDayNumber(day + 1)); setPass(0); setArticleText(''); setShowHistory(false); }
+      }
+    };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [onClose, showHistory]);
+  }, [onClose, showHistory, viewingDate, dateStr]);
 
   // ── Fetch article history list on mount ───────────────────────────────────
   useEffect(() => {
     fetch('/api/records?all=true')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`API ${r.status}`);
+        return r.json();
+      })
       .then((data: { date_str: string; day_number: number; reading_pass: number }[]) => {
         const items = data
           .filter(r => r.reading_pass > 0)
@@ -135,7 +154,10 @@ export default function ReadingNotebook({
     if (!viewingDate) return;
     setSyncMsg('');
     fetch(`/api/article?date=${viewingDate}`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`API ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         if (!data) {
           setPass(0); setArticleText(''); setArticleUrl('');
@@ -310,18 +332,20 @@ export default function ReadingNotebook({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ words }),
       });
-      const data = await res.json() as { synced?: number; errors?: number; error?: string };
-      if (res.ok) {
-        const errNote = data.errors ? ` (${data.errors} failed)` : '';
-        setSyncMsg(`Synced ${data.synced ?? 0} words to Eudic${errNote}`);
-        const nextPass = 9;
-        setPass(nextPass); setFadeKey(k => k + 1);
-        if (isToday) { onPassChange(nextPass); onTaskTick(7); onTaskTick(9); onSyncComplete(); }
-        immediateSave(nextPass, articleText, articleUrl, vocabWords, grammarNotes);
-        setArticleHistory(prev => prev.map(h => h.dateStr === viewingDate ? { ...h, readingPass: 9 } : h));
-      } else {
-        setSyncMsg(data.error ?? 'Sync failed');
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('API error:', res.status, text.slice(0, 200));
+        setSyncMsg('Sync failed');
+        return;
       }
+      const data = await res.json() as { synced?: number; errors?: number; error?: string };
+      const errNote = data.errors ? ` (${data.errors} failed)` : '';
+      setSyncMsg(`Synced ${data.synced ?? 0} words to Eudic${errNote}`);
+      const nextPass = 9;
+      setPass(nextPass); setFadeKey(k => k + 1);
+      if (isToday) { onPassChange(nextPass); onTaskTick(7); onTaskTick(9); onSyncComplete(); }
+      immediateSave(nextPass, articleText, articleUrl, vocabWords, grammarNotes);
+      setArticleHistory(prev => prev.map(h => h.dateStr === viewingDate ? { ...h, readingPass: 9 } : h));
     } finally { setSyncing(false); }
   };
 
@@ -332,14 +356,27 @@ export default function ReadingNotebook({
     setPass(0); setArticleText(''); // Will be overwritten by the useEffect
   };
 
+  const handlePrevDay = () => {
+    const day = getDayNumber(viewingDate);
+    if (day <= 1) return;
+    setViewingDate(getDateStrFromDayNumber(day - 1));
+    setShowHistory(false); setPass(0); setArticleText('');
+  };
+
+  const handleNextDay = () => {
+    const day = getDayNumber(viewingDate);
+    if (day >= getDayNumber(dateStr)) return;
+    setViewingDate(getDateStrFromDayNumber(day + 1));
+    setShowHistory(false); setPass(0); setArticleText('');
+  };
+
   const sortedVocab = useMemo(() => sortVocabByAppearance(articleText, vocabWords), [articleText, vocabWords]);
-  const renderMode: RenderMode = PASS_MODE[pass] ?? 'clean';
+  const renderMode: RenderMode = (!isToday && pass >= 9) ? 'vocab-show' : (PASS_MODE[pass] ?? 'clean');
 
   /* ── Completion receipt (pass 9) ───────────────────────────────────────── */
-  if (pass === 9 && !showHistory) {
+  if (pass === 9 && !showHistory && isToday) {
     return (
-      <div style={{ width:'100vw', height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(31,31,31,0.55)', position:'fixed', inset:0, zIndex:100, backdropFilter:'blur(2px)', padding:'16px' }}>
-        <div style={{ background:'var(--color-paper)', borderRadius:'4px', padding:'48px', maxWidth:'480px', width:'100%', textAlign:'center', boxShadow:'0 32px 80px rgba(0,0,0,0.45)', animation:'notebook-open 0.25s ease', position:'relative' }}>
+      <div style={{ background:'var(--color-paper)', borderRadius:'4px', padding:'48px', maxWidth:'480px', width:'100%', textAlign:'center', boxShadow:'0 32px 80px rgba(0,0,0,0.45)', position:'relative' }}>
           <button onClick={onClose} className="circle-btn-sm" style={{ position:'absolute', top:16, right:16 }} aria-label="Close">
             <CloseIcon />
           </button>
@@ -365,14 +402,23 @@ export default function ReadingNotebook({
             <button onClick={onClose} style={{ fontFamily:'var(--font-mono)', fontSize:'9px', textTransform:'uppercase', letterSpacing:'0.15em', color:'var(--color-paper)', background:'var(--color-ink)', border:'none', borderRadius:'4px', padding:'8px 16px', cursor:'pointer' }}>CLOSE ✓</button>
           </div>
         </div>
-      </div>
     );
   }
 
   /* ── Main notebook spread ──────────────────────────────────────────────── */
   return (
-    <div style={{ width:'100vw', height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(31,31,31,0.55)', position:'fixed', inset:0, zIndex:100, backdropFilter:'blur(2px)', padding:'16px' }}>
-      <div style={{ display:'flex', width:'min(96vw, 1200px)', height:'min(90vh, 760px)', borderRadius:'4px', boxShadow:'0 32px 80px rgba(0,0,0,0.45)', overflow:'hidden', animation:'notebook-open 0.25s ease' }}>
+    <div
+      className="paper-texture rounded-lg"
+      style={{
+        display: 'flex',
+        width: '100%',
+        maxWidth: '1100px',
+        height: 'min(90vh, 820px)',
+        overflow: 'hidden',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 8px rgba(0,0,0,0.06), 0 12px 24px rgba(0,0,0,0.08), 0 24px 48px rgba(0,0,0,0.06), inset 0 2px 0 1px rgba(255,255,255,0.6)',
+        borderTop: '1px solid rgba(255,255,255,0.8)',
+      }}
+    >
 
         {/* ── LEFT PAGE — Article ─────────────────────────────────────────── */}
         <div className="notebook-page-left lined-paper" style={{ flex:'1 1 0', minWidth:0, display:'flex', flexDirection:'column' }}>
@@ -383,33 +429,25 @@ export default function ReadingNotebook({
             </span>
           </div>
 
-          {/* Top bar */}
+          {/* Day navigation bar */}
           <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'12px', marginTop:'8px' }}>
-            <button onClick={onClose} className="circle-btn-sm" aria-label="Close" title="Close (Esc)"><CloseIcon /></button>
-            {/* Archive badge + back-to-today */}
-            {!isToday && (
-              <div style={{ display:'flex', alignItems:'center', gap:'8px', flex:1 }}>
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:'9px', textTransform:'uppercase', letterSpacing:'0.15em', padding:'3px 10px', background:'rgba(198,93,59,0.1)', border:'1px solid rgba(198,93,59,0.2)', borderRadius:'9999px', color:'var(--color-terracotta)' }}>
-                  {formatDateDisplay(viewingDate)}
-                </span>
-                <button
-                  onClick={() => { setViewingDate(dateStr); setPass(0); }}
-                  style={{ fontFamily:'var(--font-mono)', fontSize:'8px', textTransform:'uppercase', letterSpacing:'0.15em', color:'var(--color-terracotta)', background:'none', border:'none', cursor:'pointer', opacity:0.8 }}
-                >
-                  ← TODAY
-                </button>
-              </div>
-            )}
+            <button onClick={handlePrevDay} disabled={getDayNumber(viewingDate) <= 1} className="circle-btn-sm" aria-label="Previous day" title="Previous day (←)" style={{ opacity: getDayNumber(viewingDate) <= 1 ? 0.25 : 1 }}><ArrowIcon dir="left" /></button>
+            <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'1px' }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:'7px', textTransform:'uppercase', letterSpacing:'0.2em', opacity:0.4, color:'var(--color-ink)' }}>DAY {getDayNumber(viewingDate)} / {TOTAL_DAYS}</span>
+              <span style={{ fontFamily:'var(--font-heading)', fontStyle:'italic', fontSize:'0.85rem', fontWeight:300, color: isToday ? 'var(--color-ink)' : 'var(--color-terracotta)', lineHeight:1.1, opacity: isToday ? 0.7 : 1 }}>{formatDateDisplay(viewingDate)}</span>
+            </div>
+            <button onClick={handleNextDay} disabled={isToday} className="circle-btn-sm" aria-label="Next day" title="Next day (→)" style={{ opacity: isToday ? 0.25 : 1 }}><ArrowIcon dir="right" /></button>
             {pass > 0 && articleUrl && (
               <a href={articleUrl} target="_blank" rel="noopener noreferrer"
-                style={{ fontFamily:'var(--font-mono)', fontSize:'9px', textTransform:'uppercase', letterSpacing:'0.15em', color:'var(--color-terracotta)', opacity:0.7, textDecoration:'none', marginLeft:'auto' }}>
+                style={{ fontFamily:'var(--font-mono)', fontSize:'9px', textTransform:'uppercase', letterSpacing:'0.15em', color:'var(--color-terracotta)', opacity:0.7, textDecoration:'none' }}>
                 SOURCE ↗
               </a>
             )}
+            <button onClick={onClose} className="circle-btn-sm" aria-label="Close" title="Close (Esc)"><CloseIcon /></button>
           </div>
 
           {/* Article */}
-          <div key={fadeKey} style={{ flex:1, overflowY:'auto', paddingRight:'4px' }}>
+          <div key={fadeKey} style={{ flex:1, minHeight:0, overflowY:'auto', paddingRight:'4px' }}>
             {pass === 0 ? (
               <div style={{ opacity:0.3, fontFamily:'var(--font-heading)', fontStyle:'italic', fontSize:'1.1rem', fontWeight:300, color:'var(--color-ink)', paddingTop:'32px', lineHeight:1.7 }}>
                 {isToday
@@ -508,7 +546,6 @@ export default function ReadingNotebook({
           </div>
         </div>
       </div>
-    </div>
   );
 }
 
